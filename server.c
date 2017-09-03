@@ -54,102 +54,18 @@ void startListening(Server *s) {
 			
 			/* Notification from the server socket -> New Connection(s) */
 			else if((*s).events[i].data.fd == (*s).sockfd) {
-				
-				while(1) {
-					int newsockfd, clilen;
-					struct sockaddr_in cli_addr;
-					clilen = sizeof(cli_addr);
-					
-					/* Accept actual connection from the client */
-					newsockfd = accept((*s).sockfd, (struct sockaddr *)&cli_addr, &clilen);				
-					if (newsockfd < 0) {
-						
-						/* Check if error is because no more connection exist */
-						if ((errno != EAGAIN) && (errno != EWOULDBLOCK)) {
-							perror("ERROR on accept");
-                        }
-						break;
-					}
-					
-					/* Make socket non-blocking and add it to the event queue */
-					if(makeSocketUnblockable(newsockfd) == -1) {
-						exit(1);
-					}
-					
-					struct epoll_event socket_event;
-										
-					socket_event.data.fd = newsockfd;
-					socket_event.events = EPOLLIN | EPOLLET;
-					if(epoll_ctl((*s).epollfd, EPOLL_CTL_ADD, newsockfd, &socket_event) == -1) {
-						perror("ERROR adding socket event");
-						exit(1);
-					}
-					
-				}
-			
+				acceptAllNewConnection(s);
 			}
 			
 			/* Notification from a connection socket with client */
 			else {
-				
-				char buf[1024];
-				int done = 0;
-				
-				while (1) {
-					ssize_t count = read((*s).events[i].data.fd, buf, sizeof buf);
-
-					/* Socket Error */
-					if (count == -1) {
-						
-						/* Read would block, (partial data?) */
-						if (errno == EAGAIN) {
-							done = 1;
-							break;
-							
-						} else {
-							done = 1;
-							perror ("ERROR socket read");
-							break;
-						}
-					}
-
-					/* EOF - Client closed the connection */
-					else if (count == 0) {
-						done = 1;
-						break;
-					}
-					
-					/* There is data to be processed */
-					else {
-						if (write (1, buf, count) == -1) {
-							perror ("write");
-							exit(1);
-						}
-					}
-				}
-				
-				if(done) { 
-					if (write((*s).events[i].data.fd, "I got your message", 18) == -1) {
-						perror("ERROR writing to socket");
-						exit(1);
-					}
-					close((*s).events[i].data.fd);
-				}
+				serveRequest((*s).events[i].data.fd);
             }
 				
 		}
 			
 	}
 }
-
-/*
- * 	n = write(newsockfd,"I got your message",18);
-   
-	if (n < 0) {
-		perror("ERROR writing to socket");
-		exit(1);
-	}
- * */
 
 ///////////////////////////
 // PRIVATE HELPER METHOD //
@@ -204,4 +120,104 @@ int makeSocketUnblockable(int fd) {
 	
 	return 0;
 }
+
+void acceptAllNewConnection(Server *s) {
+	while(1) {
+		
+		int newsockfd, clilen;
+		struct sockaddr_in cli_addr;
+		clilen = sizeof(cli_addr);
+		
+		/* Accept actual connection from the client */
+		newsockfd = accept((*s).sockfd, (struct sockaddr *)&cli_addr, &clilen);				
+		if (newsockfd < 0) {
+			
+			/* Check if error is because no more connection exist */
+			if ((errno != EAGAIN) && (errno != EWOULDBLOCK)) {
+				perror("ERROR on accept");
+			}
+			break;
+		}
+		
+		/* Make socket non-blocking and add it to the event queue */
+		if(makeSocketUnblockable(newsockfd) == -1) {
+			exit(1);
+		}
+		
+		struct epoll_event socket_event;
+							
+		socket_event.data.fd = newsockfd;
+		socket_event.events = EPOLLIN | EPOLLET;
+		if(epoll_ctl((*s).epollfd, EPOLL_CTL_ADD, newsockfd, &socket_event) == -1) {
+			perror("ERROR adding socket event");
+			exit(1);
+		}
+		
+	}
+}
+
+void serveRequest(int sockfd) {
+	
+	/* PLACEHOLDER REQUEST HANDLER FOR TESTING */
+	
+	char buf[1024];
+	int done = 0;
+	
+	while (1) {
+		ssize_t count = read(sockfd, buf, sizeof buf);
+
+		/* Socket Error */
+		if (count == -1) {
+			
+			/* Read would block, (partial data?) */
+			if (errno == EAGAIN) {
+				done = 1;
+				break;
+				
+			} else {
+				done = 1;
+				perror ("ERROR socket read");
+				break;
+			}
+		}
+
+		/* EOF - Client closed the connection */
+		else if (count == 0) {
+			done = 1;
+			break;
+		}
+		
+		/* There is data to be processed */
+		else {
+			if (write (1, buf, count) == -1) {
+				perror ("write");
+				exit(1);
+			}
+		}
+	}
+	
+	if(done) { 
+		if (write(sockfd, "I got your message", 18) == -1) {
+			perror("ERROR writing to socket");
+			exit(1);
+		}
+		close(sockfd);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
