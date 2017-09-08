@@ -31,6 +31,7 @@ void initServer(Server *s, int portno) {
 	}
 	
 	(*s).events = calloc(MAX_EVENT, sizeof socket_event);
+	printf("\nServer initialized successfully at port %d\n", DEF_PORT);
 }
 
 void startListening(Server *s) {
@@ -38,7 +39,8 @@ void startListening(Server *s) {
 		perror("ERROR on listen");
 		exit(1);
 	}
-	
+
+	printf("\nListening for connection...\n\n");
 	while(1) {
 		int i, n;
 		n = epoll_wait ((*s).epollfd, (*s).events, MAX_EVENT, -1);
@@ -129,7 +131,8 @@ void acceptAllNewConnection(Server *s) {
 		clilen = sizeof(cli_addr);
 		
 		/* Accept actual connection from the client */
-		newsockfd = accept((*s).sockfd, (struct sockaddr *)&cli_addr, &clilen);				
+		newsockfd = accept((*s).sockfd, (struct sockaddr *)&cli_addr, &clilen);
+		
 		if (newsockfd < 0) {
 			
 			/* Check if error is because no more connection exist */
@@ -153,6 +156,7 @@ void acceptAllNewConnection(Server *s) {
 			exit(1);
 		}
 		
+		//printf("New connection added at socket %d\n", newsockfd);
 	}
 }
 
@@ -162,6 +166,7 @@ void serveRequest(int sockfd) {
 	
 	char buf[1024];
 	int done = 0;
+	printf("Request received from connection socket %d\n", sockfd);
 	
 	while (1) {
 		ssize_t count = read(sockfd, buf, sizeof buf);
@@ -172,11 +177,12 @@ void serveRequest(int sockfd) {
 			/* Read would block, (partial data?) */
 			if (errno == EAGAIN) {
 				done = 1;
+				//printf("Socket EAGAIN\n");
 				break;
 				
 			} else {
 				done = 1;
-				perror ("ERROR socket read");
+				perror("ERROR socket read");
 				break;
 			}
 		}
@@ -184,6 +190,7 @@ void serveRequest(int sockfd) {
 		/* EOF - Client closed the connection */
 		else if (count == 0) {
 			done = 1;
+			//printf("Socket EOF\n");
 			break;
 		}
 		
@@ -202,6 +209,7 @@ void serveRequest(int sockfd) {
 			exit(1);
 		}
 		close(sockfd);
+		//printf("Closing connection socket %d\n", sockfd);
 	}
 }
 

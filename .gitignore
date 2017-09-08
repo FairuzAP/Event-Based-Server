@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+
+# Test Report File
+*.xml
+*.xml.bak-*
+*.log
