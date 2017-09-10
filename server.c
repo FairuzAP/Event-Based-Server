@@ -165,14 +165,15 @@ void serveRequest(int sockfd) {
 	/* PLACEHOLDER REQUEST HANDLER FOR TESTING */
 	
 	char buf[1024];
+	char *req = NULL;
 	int done = 0;
-	printf("Request received from connection socket %d\n", sockfd);
+	//printf("Request received from connection socket %d\n", sockfd);
 	
 	while (1) {
 		ssize_t count = read(sockfd, buf, sizeof buf);
 
 		/* Socket Error */
-		if (count == -1) {
+		if(count == -1) {
 			
 			/* Read would block, (partial data?) */
 			if (errno == EAGAIN) {
@@ -188,7 +189,7 @@ void serveRequest(int sockfd) {
 		}
 
 		/* EOF - Client closed the connection */
-		else if (count == 0) {
+		else if(count == 0) {
 			done = 1;
 			//printf("Socket EOF\n");
 			break;
@@ -196,24 +197,59 @@ void serveRequest(int sockfd) {
 		
 		/* There is data to be processed */
 		else {
-			if (write (1, buf, count) == -1) {
-				perror ("write");
-				exit(1);
+			if(req == NULL) {
+				req = parseRequest(buf);
 			}
 		}
 	}
 	
-	if(done) { 
-		if (write(sockfd, "I got your message", 18) == -1) {
+	/* Check if request fully processed (for now, this will always be the case) */
+	if(done) {
+		
+		/* Check if the request is a valid GET Request */
+		if(req != NULL) {
+			char resp[1024];
+			printf("Get Request received for %s\n", req);
+			
+			sprintf(resp, "I got your request for %s", req);
+			if(write(sockfd, resp, strlen(resp)) == -1) {
+				perror("ERROR writing to socket");
+				exit(1);
+			}
+			
+		} else if(write(sockfd, "Invalid GET Request", 19) == -1) {
 			perror("ERROR writing to socket");
 			exit(1);
 		}
+		
+		
 		close(sockfd);
 		//printf("Closing connection socket %d\n", sockfd);
 	}
 }
 
+const char newline[2] = "\n";
+const char space[2] = " ";
+const char get[4] = "GET";
 
+char *parseRequest(char *buf) {
+	char *line;		   
+	char *tok = NULL;
+	
+	line = strtok(buf, newline);
+	while(line != NULL) {
+		
+		if(strstr(line, get) != NULL) {
+			strtok(line, space);
+			tok = strtok(NULL, space);
+			break;
+		}
+		
+		line = strtok(NULL, newline);
+	}
+	
+	return tok;
+}
 
 
 

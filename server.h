@@ -79,5 +79,12 @@ void acceptAllNewConnection(Server *s);
  * */
 void serveRequest(int sockfd);
 
+/*
+ * This procedure will read the http header suppliend and return the file
+ * identifier the header wants if it is a valid HTTP GET request,
+ * Return NULL otherwise
+ * */
+char *parseRequest(char *buf);
+
 #endif
 
