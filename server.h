@@ -86,5 +86,11 @@ void serveRequest(int sockfd);
  * */
 char *parseRequest(char *buf);
 
+/*
+ * This procedure will caoncat two string
+ * Return s1 + s2
+ * */
+char* concatString(const char *s1, const char *s2);
+
 #endif
 

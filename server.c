@@ -208,15 +208,33 @@ void serveRequest(int sockfd) {
 		
 		/* Check if the request is a valid GET Request */
 		if(req != NULL) {
-			char resp[1024];
+			void *resp;
+			int file_id, bytes_read;
+			char *file_name;
 			printf("Get Request received for %s\n", req);
 			
-			sprintf(resp, "I got your request for %s", req);
-			if(write(sockfd, resp, strlen(resp)) == -1) {
-				perror("ERROR writing to socket");
+			// Read data into buffer
+			file_name = strtok(req,"/");
+			printf("Cek file name %s\n",file_name );
+			file_id = open(file_name, O_RDONLY);
+			bytes_read = read(file_id,resp,10000);
+			if (bytes_read < 0){
+				perror("ERROR data writing to buffer");
 				exit(1);
-			}
-			
+			} else {
+				sprintf(resp, "I got your request for %s\n", req);
+				void *p = resp;
+			    while (bytes_read > 0) {
+			        int bytes_written = write(sockfd, p, bytes_read);
+			        if (bytes_written <= 0) {
+						perror("ERROR writing to socket");
+						exit(1);
+			        }
+			        bytes_read -= bytes_written;
+			        p += bytes_written;
+			    }
+			    close(file_id);
+			}	
 		} else if(write(sockfd, "Invalid GET Request", 19) == -1) {
 			perror("ERROR writing to socket");
 			exit(1);
@@ -252,7 +270,13 @@ char *parseRequest(char *buf) {
 }
 
 
-
+char* concatString(const char *s1, const char *s2)
+{
+    char *result = malloc(strlen(s1)+strlen(s2)+1);//+1 for the zero-terminator
+    strcpy(result, s1);
+    strcat(result, s2);
+    return result;
+}
 
 
 
