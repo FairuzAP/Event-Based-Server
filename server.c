@@ -251,6 +251,8 @@ void serveRequest(int sockfd) {
 						p += bytes_written;
 					}
 				}
+				
+				close(fd);
 			}
 			
 		} else if(write(sockfd, "Invalid GET Request", 19) == -1) {
