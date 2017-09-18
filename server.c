@@ -209,37 +209,50 @@ void serveRequest(int sockfd) {
 		/* Check if the request is a valid GET Request */
 		if(req != NULL) {
 			void *resp;
-			int file_id, bytes_read;
+			int fd;
 			char *file_name;
-			printf("Get Request received for %s\n", req);
 			
-			// Read data into buffer
-			file_name = concatString("./www",req);
+			printf("Get Request received for %s\n", req);
+			file_name = concatString("www",req);
+			fd = open(file_name, O_RDONLY);
+			if(fd < 0) {
+				if(write(sockfd, "File Not Found", 14) == -1) {
+					perror("ERROR writing to socket");
+					exit(1);
+				}
 
-			printf("Cek file name %s\n",file_name );
-			file_id = open(file_name, O_RDONLY);
-			if (file_id < 0){
-				perror("ERROR read file");
-				exit(1);
-			}
-			bytes_read = read(file_id,resp,15000);
-			if (bytes_read < 0){
-				perror("ERROR data writing to buffer");
-				exit(1);
 			} else {
-				//sprintf(resp, "I got your request for %s\n", req);
-				void *p = resp;
-			    while (bytes_read > 0) {
-			        int bytes_written = write(sockfd, p, bytes_read);
-			        if (bytes_written <= 0) {
-						perror("ERROR writing to socket");
+				while (1) {
+
+					// Read data into buffer.  We may not have enough to fill up buffer, so we
+					// store how many bytes were actually read in bytes_read.
+					int bytes_read = read(fd, buf, sizeof(buf));
+					if (bytes_read == 0) // We're done reading from the file
+						break;
+
+					if (bytes_read < 0) {
+						perror("ERROR reading socket");
 						exit(1);
-			        }
-			        bytes_read -= bytes_written;
-			        p += bytes_written;
-			    }
+					}
+
+					// You need a loop for the write, because not all of the data may be written
+					// in one call; write will return how many bytes were written. p keeps
+					// track of where in the buffer we are, while we decrement bytes_read
+					// to keep track of how many bytes are left to write.
+					void *p = buf;
+					while (bytes_read > 0) {
+						int bytes_written = write(sockfd, p, bytes_read);
+						if (bytes_written <= 0) {
+							perror("ERROR writing to socket");
+							exit(1);
+						}
+						bytes_read -= bytes_written;
+						p += bytes_written;
+					}
+				}
+				
+				close(fd);
 			}
-			close(file_id);	
 		} else if(write(sockfd, "Invalid GET Request", 19) == -1) {
 			perror("ERROR writing to socket");
 			exit(1);
@@ -275,8 +288,7 @@ char *parseRequest(char *buf) {
 }
 
 
-char* concatString(const char *s1, const char *s2)
-{
+char* concatString(const char *s1, const char *s2) {
     char *result = malloc(strlen(s1)+strlen(s2)+1);//+1 for the zero-terminator
     strcpy(result, s1);
     strcat(result, s2);
