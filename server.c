@@ -211,8 +211,7 @@ void serveRequest(int sockfd) {
 			void *resp;
 			int fd;
 			char *file_name;
-			
-			printf("Get Request received for %s\n", req);
+
 			file_name = concatString("www",req);
 			fd = open(file_name, O_RDONLY);
 			if(fd < 0) {
