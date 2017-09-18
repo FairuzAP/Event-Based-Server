@@ -18,7 +18,7 @@
 #define MAX_EVENT 32
 
 // The default port the server will listen to
-#define DEF_PORT 5001
+#define DEF_PORT 5002
 
 typedef struct Server {
 	int sockfd;
